@@ -4,6 +4,8 @@ import static org.mockito.Mockito.*;
 import static org.junit.Assert.*;
 import static org.hamcrest.Matchers.*;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.sql.SQLException;
 
 import javax.sql.DataSource;
@@ -11,6 +13,9 @@ import javax.sql.DataSource;
 import org.junit.Test;
 
 public class StormpotDataSourceTest {
+  private static final PrintWriter LOG_WRITER =
+      new PrintWriter(new StringWriter());
+  
   class Fixture {
     DataSource delegate;
 
@@ -27,11 +32,15 @@ public class StormpotDataSourceTest {
     return new Fixture();
   }
   
+  // -----------------------------------------------------------------------
+  
   // constructors:
   @Test(expected = IllegalArgumentException.class) public void
   dataSourceCannotBeNull() {
     new StormpotDataSource(null);
   }
+  
+  // -----------------------------------------------------------------------
 
   // javax.sql.CommonDataSource:
   @Test public void
@@ -40,9 +49,33 @@ public class StormpotDataSourceTest {
     assertThat(ds.getLogWriter(), nullValue());
   }
   
-  // TODO must remember configured log writer
-  // TODO must set log writer on delegate
-  // TODO must not remember log writer if delegate throws
+  @Test public void
+  mustRememberConfiguredLogWriter() throws SQLException {
+    DataSource ds = fixture().pool();
+    ds.setLogWriter(LOG_WRITER);
+    assertThat(ds.getLogWriter(), sameInstance(LOG_WRITER));
+  }
+  
+  @Test public void
+  mustSetLogWriterOnDelegate() throws SQLException {
+    Fixture fixture = fixture();
+    DataSource ds = fixture.pool();
+    ds.setLogWriter(LOG_WRITER);
+    verify(fixture.delegate).setLogWriter(LOG_WRITER);
+  }
+  
+  @Test public void
+  mustNotRememberLogWriterIfDelegateThrows() throws SQLException {
+    Fixture fixture = fixture();
+    doThrow(new SQLException()).when(fixture.delegate).setLogWriter(LOG_WRITER);
+    DataSource ds = fixture.pool();
+    try {
+      ds.setLogWriter(LOG_WRITER);
+      fail("Excepted SQLException to bubble out!");
+    } catch (SQLException _) {}
+    assertThat(ds.getLogWriter(), nullValue());
+  }
+  
   // TODO login timeout is initially zero
   // TODO must remember login timeout
   // TODO must set login timeout on delegate

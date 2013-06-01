@@ -7,25 +7,28 @@ import java.sql.SQLException;
 import javax.sql.DataSource;
 
 public class StormpotDataSource implements DataSource {
+  private final DataSource delegate;
+  
+  // volatile ensures safe publication:
+  private volatile PrintWriter logWriter;
 
   public StormpotDataSource(DataSource delegate) {
     if (delegate == null) {
       throw new IllegalArgumentException(
           "The delegate DataSource cannot be null");
     }
-    
+    this.delegate = delegate;
   }
 
   @Override
   public PrintWriter getLogWriter() throws SQLException {
-    // TODO Auto-generated method stub
-    return null;
+    return logWriter;
   }
 
   @Override
   public void setLogWriter(PrintWriter out) throws SQLException {
-    // TODO Auto-generated method stub
-    
+    delegate.setLogWriter(out);
+    logWriter = out;
   }
 
   @Override
