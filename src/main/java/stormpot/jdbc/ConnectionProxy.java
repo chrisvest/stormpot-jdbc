@@ -108,8 +108,7 @@ class ConnectionProxy implements Poolable, Connection {
 
   @Override
   public void close() throws SQLException {
-    // TODO Auto-generated method stub
-    
+    release();
   }
 
   @Override

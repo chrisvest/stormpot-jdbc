@@ -7,10 +7,17 @@ import static org.hamcrest.Matchers.*;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
+import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
 import org.junit.Test;
+
+import stormpot.LifecycledPool;
+import stormpot.LifecycledResizablePool;
+import stormpot.Pool;
+import stormpot.ResizablePool;
 
 public class StormpotDataSourceTest {
   private static final PrintWriter LOG_WRITER =
@@ -109,25 +116,149 @@ public class StormpotDataSourceTest {
     assertThat(ds.getLoginTimeout(), is(0));
   }
   
-  // TODO must use login timeout as claim timeout
-  
+  @Test(timeout = 2000) public void
+  mustUseLoginTimeoutAsClaimTimeout() throws SQLException {
+    Fixture fixture = fixture();
+    fixture.delegate = new BlockingDataSource();
+    DataSource ds = fixture.pool();
+    ds.setLoginTimeout(1);
+    long start = System.nanoTime();
+    try {
+      ds.getConnection();
+      fail("Should have thrown an exception about timeout!");
+    } catch (SQLTimeoutException _) {}
+    long end = System.nanoTime();
+    assertThat(end - start, greaterThanOrEqualTo(TimeUnit.SECONDS.toNanos(1)));
+  }
+
+  // -----------------------------------------------------------------------
   
   // java.sql.Wrapper:
-  // TODO unwrap must throw sql exception for unknown types
-  // TODO unwrap must throw on nulls
-  // TODO must unwrap delegate data source interface
-  // TODO must unwrap delegate data source class
-  // TODO must unwrap delegate connection interface
-  // TODO must unwrap delegate connection class
-  // TODO must unwrap pool
-  // TODO must unwrap resizable pool
-  // TODO must unwrap lifecycled pool
-  // TODO must unwrap lifecycled resizable pool
+  @Test public void
+  doesNotWrapUnknownObjects() throws SQLException {
+    DataSource ds = fixture().pool();
+    assertFalse(ds.isWrapperFor(String.class));
+  }
+  
+  @Test(expected = SQLException.class) public void
+  unwrapMustThrowSQLExceptionForUnknownTypes() throws SQLException {
+    DataSource ds  = fixture().pool();
+    ds.unwrap(String.class);
+  }
+  
+  @Test(expected = SQLException.class) public void
+  isWrapperForMustThrowOnNull() throws SQLException {
+    DataSource ds = fixture().pool();
+    ds.isWrapperFor(null);
+  }
+  
+  @Test(expected = SQLException.class) public void
+  unwrapMustThrowOnNulls() throws SQLException {
+    DataSource ds = fixture().pool();
+    ds.unwrap(null);
+  }
+  
+  @Test public void
+  canUnwrapDataSourceInterface() throws SQLException {
+    DataSource ds = fixture().pool();
+    assertTrue(ds.isWrapperFor(DataSource.class));
+  }
+  
+  @Test public void
+  mustUnwrapDataSourceInterface() throws SQLException {
+    Fixture fixture = fixture();
+    DataSource ds = fixture.pool();
+    assertThat(ds.unwrap(DataSource.class), sameInstance(fixture.delegate));
+  }
+  
+  @Test public void
+  canUnwrapDataSourceSpecificClass() throws SQLException {
+    Fixture fixture = fixture();
+    fixture.delegate = new BlockingDataSource();
+    DataSource ds = fixture.pool();
+    assertTrue(ds.isWrapperFor(BlockingDataSource.class));
+  }
+  
+  @Test public void
+  mustUnwrapDataSourceSpecificClass() throws SQLException {
+    Fixture fixture = fixture();
+    fixture.delegate = new BlockingDataSource();
+    DataSource ds = fixture.pool();
+    assertThat(
+        ds.unwrap(BlockingDataSource.class), sameInstance(fixture.delegate));
+  }
+  
+  @Test public void
+  canUnwrapPool() throws SQLException {
+    DataSource ds = fixture().pool();
+    assertTrue(ds.isWrapperFor(Pool.class));
+  }
+  
+  @Test public void
+  mustUnwrapPool() throws SQLException {
+    DataSource ds = fixture().pool();
+    assertThat(ds.unwrap(Pool.class), not(nullValue()));
+  }
+  
+  @Test public void
+  canUnwrapResizablePool() throws SQLException {
+    DataSource ds = fixture().pool();
+    assertTrue(ds.isWrapperFor(ResizablePool.class));
+  }
+  
+  @Test public void
+  mustUnwrapResizablePool() throws SQLException {
+    DataSource ds = fixture().pool();
+    assertThat(ds.unwrap(ResizablePool.class), not(nullValue()));
+  }
+  
+  @Test public void
+  canUnwrapLifecycledPool() throws SQLException {
+    DataSource ds = fixture().pool();
+    assertTrue(ds.isWrapperFor(LifecycledPool.class));
+  }
+  
+  @Test public void
+  mustUnwrapLifecycledPool() throws SQLException {
+    DataSource ds = fixture().pool();
+    assertThat(ds.unwrap(LifecycledPool.class), not(nullValue()));
+  }
+  
+  @Test public void
+  canUnwrapLifecycledResizablePool() throws SQLException {
+    DataSource ds = fixture().pool();
+    assertTrue(ds.isWrapperFor(LifecycledResizablePool.class));
+  }
+  
+  @Test public void
+  mustUnwrapLifecycledResizablePool() throws SQLException {
+    DataSource ds = fixture().pool();
+    assertThat(ds.unwrap(LifecycledResizablePool.class), not(nullValue()));
+  }
+  
+  @Test public void
+  canUnwrapIfDelegateCanUnwrap() throws SQLException {
+    Fixture fixture = fixture();
+    when(fixture.delegate.isWrapperFor(String.class)).thenReturn(true);
+    DataSource ds = fixture.pool();
+    assertTrue(ds.isWrapperFor(String.class));
+  }
+  
+  @Test public void
+  unwrapMustDelegateForUnknownTypes() throws SQLException {
+    String obj = "a string";
+    Fixture fixture = fixture();
+    when(fixture.delegate.isWrapperFor(String.class)).thenReturn(true);
+    when(fixture.delegate.unwrap(String.class)).thenReturn(obj);
+    DataSource ds = fixture.pool();
+    assertThat(ds.unwrap(String.class), is(obj));
+  }
   
   // javax.sql.DataSource:
   // TODO get connection must claim from pool
   // TODO closing connection must release to pool
   // TODO must throw if claim times out
+  // TODO must throw if claim is interrupted
   // TODO must wrap exceptions from claim
   // TODO get connection by username and password is unsupported
 }

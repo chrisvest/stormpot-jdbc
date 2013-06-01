@@ -7,7 +7,7 @@ import javax.sql.DataSource;
 import stormpot.Allocator;
 import stormpot.Slot;
 
-public class DataSourceAllocator implements Allocator<ConnectionProxy> {
+class DataSourceAllocator implements Allocator<ConnectionProxy> {
 
   private final DataSource delegate;
 
