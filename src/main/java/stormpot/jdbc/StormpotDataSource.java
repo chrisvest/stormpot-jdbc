@@ -9,8 +9,14 @@ import javax.sql.DataSource;
 public class StormpotDataSource implements DataSource {
   private final DataSource delegate;
   
-  // volatile ensures safe publication:
-  private volatile PrintWriter logWriter;
+  // Fields guarded by the 'this' lock:
+  private PrintWriter logWriter;
+  private int loginTimeoutSeconds;
+  
+  // These fields are protected by synchronised access, because they are
+  // replicated to the delegate, and possibly elsewhere. We need to ensure that
+  // the access to these fields are atomic. Native monitors is fine for this,
+  // because the fields are accessed so rarely.
 
   public StormpotDataSource(DataSource delegate) {
     if (delegate == null) {
@@ -21,26 +27,25 @@ public class StormpotDataSource implements DataSource {
   }
 
   @Override
-  public PrintWriter getLogWriter() throws SQLException {
+  public synchronized PrintWriter getLogWriter() throws SQLException {
     return logWriter;
   }
 
   @Override
-  public void setLogWriter(PrintWriter out) throws SQLException {
+  public synchronized void setLogWriter(PrintWriter out) throws SQLException {
     delegate.setLogWriter(out);
     logWriter = out;
   }
 
   @Override
-  public void setLoginTimeout(int seconds) throws SQLException {
-    // TODO Auto-generated method stub
-    
+  public synchronized void setLoginTimeout(int seconds) throws SQLException {
+    delegate.setLoginTimeout(seconds);
+    this.loginTimeoutSeconds = seconds;
   }
 
   @Override
-  public int getLoginTimeout() throws SQLException {
-    // TODO Auto-generated method stub
-    return 0;
+  public synchronized int getLoginTimeout() throws SQLException {
+    return loginTimeoutSeconds;
   }
 
   @Override

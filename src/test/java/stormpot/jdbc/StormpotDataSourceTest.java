@@ -71,16 +71,46 @@ public class StormpotDataSourceTest {
     DataSource ds = fixture.pool();
     try {
       ds.setLogWriter(LOG_WRITER);
-      fail("Excepted SQLException to bubble out!");
+      fail("Expected SQLException to bubble out, but it didn't!");
     } catch (SQLException _) {}
     assertThat(ds.getLogWriter(), nullValue());
   }
   
-  // TODO login timeout is initially zero
-  // TODO must remember login timeout
-  // TODO must set login timeout on delegate
+  @Test public void
+  loginTimeoutIsInitiallyZero() throws SQLException {
+    DataSource ds = fixture().pool();
+    assertThat(ds.getLoginTimeout(), is(0));
+  }
+  
+  @Test public void
+  mustRememberLoginTimeout() throws SQLException {
+    DataSource ds = fixture().pool();
+    ds.setLoginTimeout(10);
+    assertThat(ds.getLoginTimeout(), is(10));
+  }
+  
+  @Test public void
+  mustSetLoginTimeoutOnDelegate() throws SQLException {
+    Fixture fixture = fixture();
+    DataSource ds = fixture.pool();
+    ds.setLoginTimeout(10);
+    verify(fixture.delegate).setLoginTimeout(10);
+  }
+  
+  @Test public void
+  mustNotSetLoginTimeoutIfDelegateThrows() throws SQLException {
+    Fixture fixture = fixture();
+    doThrow(new SQLException()).when(fixture.delegate).setLoginTimeout(10);
+    DataSource ds = fixture.pool();
+    try {
+      ds.setLoginTimeout(10);
+      fail("Expected SQLException to bubble out, but it didn't!");
+    } catch (SQLException _) {}
+    assertThat(ds.getLoginTimeout(), is(0));
+  }
+  
   // TODO must use login timeout as claim timeout
-  // TODO must not set login timeout if delegate throws
+  
   
   // java.sql.Wrapper:
   // TODO unwrap must throw sql exception for unknown types
