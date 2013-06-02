@@ -19,7 +19,7 @@ import stormpot.bpool.BlazePool;
 public class StormpotDataSource implements DataSource {
   // A sentinel object used by the unwrap methods internally, to signal when
   // we a not wrapping any objects of a given type:
-  private static final Object NOT_WRAPPED = new Object();
+  static final Object NOT_WRAPPED = new Object();
   
   private final DataSource delegate;
   private final Allocator<ConnectionProxy> allocator;

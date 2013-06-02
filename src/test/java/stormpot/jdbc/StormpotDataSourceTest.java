@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.*;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLTimeoutException;
@@ -258,7 +259,16 @@ public class StormpotDataSourceTest {
   // -----------------------------------------------------------------------
   
   // javax.sql.DataSource:
-  // TODO get connection must claim from pool
+  @Test public void
+  getConnectionMustClaimFromPool() throws SQLException {
+    Connection con = mock(Connection.class);
+    Fixture fixture = fixture();
+    when(fixture.delegate.getConnection()).thenReturn(con);
+    DataSource ds = fixture.pool();
+    Connection proxy = ds.getConnection();
+    assertThat(proxy.unwrap(Connection.class), sameInstance(con));
+  }
+  
   // TODO closing connection must release to pool
   // TODO must throw if claim times out
   // TODO must throw if claim is interrupted
