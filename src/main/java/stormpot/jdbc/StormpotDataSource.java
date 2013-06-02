@@ -3,6 +3,7 @@ package stormpot.jdbc;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLTimeoutException;
 import java.util.concurrent.TimeUnit;
 
@@ -133,8 +134,9 @@ public class StormpotDataSource implements DataSource {
   @Override
   public Connection getConnection(String username, String password)
       throws SQLException {
-    // TODO Auto-generated method stub
-    return null;
+    throw new SQLFeatureNotSupportedException(
+        "The getConnection(username, password) method is not supported by " +
+        "the connection pool in this version. You can work around this by " +
+        "using the unwrap method to get the delegate DataSource.");
   }
-
 }

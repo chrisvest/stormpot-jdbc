@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.*;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLTimeoutException;
 import java.util.concurrent.TimeUnit;
 
@@ -253,6 +254,8 @@ public class StormpotDataSourceTest {
     DataSource ds = fixture.pool();
     assertThat(ds.unwrap(String.class), is(obj));
   }
+
+  // -----------------------------------------------------------------------
   
   // javax.sql.DataSource:
   // TODO get connection must claim from pool
@@ -261,4 +264,10 @@ public class StormpotDataSourceTest {
   // TODO must throw if claim is interrupted
   // TODO must wrap exceptions from claim
   // TODO get connection by username and password is unsupported
+  
+  @Test(expected = SQLFeatureNotSupportedException.class) public void
+  getConnectionByUsernameAndPasswordIsNotSupported() throws SQLException {
+    DataSource ds = fixture().pool();
+    ds.getConnection("username", "password");
+  }
 }
