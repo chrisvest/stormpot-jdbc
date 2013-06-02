@@ -124,11 +124,10 @@ public class StormpotDataSource implements DataSource {
       }
       return con;
     } catch (PoolException e) {
-      // TODO catch PoolException
+      throw new SQLException("Failed to claim connection from pool.", e);
     } catch (InterruptedException e) {
-      // TODO catch InterruptedException
+      throw new SQLException("The current thread is interrupted.", e);
     }
-    return null;
   }
 
   @Override

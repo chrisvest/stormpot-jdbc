@@ -269,11 +269,37 @@ public class StormpotDataSourceTest {
     assertThat(proxy.unwrap(Connection.class), sameInstance(con));
   }
   
-  // TODO closing connection must release to pool
-  // TODO must throw if claim times out
-  // TODO must throw if claim is interrupted
-  // TODO must wrap exceptions from claim
-  // TODO get connection by username and password is unsupported
+  @Test(expected = SQLTimeoutException.class) public void
+  mustThrowIfClaimTimesOut() throws SQLException {
+    Fixture fixture = fixture();
+    fixture.delegate = new BlockingDataSource();
+    DataSource ds = fixture.pool();
+    ds.setLoginTimeout(0);
+    ds.getConnection();
+  }
+  
+  @Test(expected = SQLException.class) public void
+  mustThrowIfClaimIsInterrupted() throws SQLException {
+    DataSource ds = fixture().pool();
+    Thread.currentThread().interrupt();
+    ds.getConnection();
+  }
+  
+  @Test public void
+  mustWrapPoolExceptionsFromClaim() throws SQLException {
+    Throwable exception = new SQLException("Boom!");
+    Fixture fixture = fixture();
+    when(fixture.delegate.getConnection()).thenThrow(exception);
+    DataSource ds = fixture.pool();
+    try {
+      ds.getConnection();
+      fail("The call to getConnection should have thrown!");
+    } catch (SQLException sqle) {
+      Throwable poolException = sqle.getCause();
+      Throwable allocatorException = poolException.getCause();
+      assertThat(allocatorException, sameInstance(exception));
+    }
+  }
   
   @Test(expected = SQLFeatureNotSupportedException.class) public void
   getConnectionByUsernameAndPasswordIsNotSupported() throws SQLException {
