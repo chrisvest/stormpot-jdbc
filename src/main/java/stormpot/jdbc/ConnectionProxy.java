@@ -212,80 +212,104 @@ class ConnectionProxy implements Poolable, Connection {
 
   @Override
   public void setAutoCommit(boolean autoCommit) throws SQLException {
-    // TODO Auto-generated method stub
-    
+    assertNotClosed();
+    con.setAutoCommit(autoCommit);
   }
 
   @Override
   public boolean getAutoCommit() throws SQLException {
-    // TODO Auto-generated method stub
-    return false;
+    assertNotClosed();
+    return con.getAutoCommit();
   }
 
   @Override
   public void commit() throws SQLException {
-    // TODO Auto-generated method stub
-    
+    assertNotClosed();
+    con.commit();
   }
 
   @Override
   public void rollback() throws SQLException {
-    // TODO Auto-generated method stub
-    
+    assertNotClosed();
+    con.rollback();
+  }
+
+  @Override
+  public void rollback(Savepoint savepoint) throws SQLException {
+    assertNotClosed();
+    con.rollback(savepoint);
+  }
+
+  @Override
+  public Savepoint setSavepoint() throws SQLException {
+    assertNotClosed();
+    return con.setSavepoint();
+  }
+
+  @Override
+  public Savepoint setSavepoint(String name) throws SQLException {
+    assertNotClosed();
+    return con.setSavepoint(name);
+  }
+
+  @Override
+  public void releaseSavepoint(Savepoint savepoint) throws SQLException {
+    assertNotClosed();
+    con.releaseSavepoint(savepoint);
   }
 
   @Override
   public DatabaseMetaData getMetaData() throws SQLException {
-    // TODO Auto-generated method stub
-    return null;
+    assertNotClosed();
+    return con.getMetaData();
   }
 
   @Override
   public void setReadOnly(boolean readOnly) throws SQLException {
-    // TODO Auto-generated method stub
-    
+    assertNotClosed();
+    con.setReadOnly(readOnly);
   }
 
   @Override
   public boolean isReadOnly() throws SQLException {
-    // TODO Auto-generated method stub
-    return false;
+    assertNotClosed();
+    return con.isReadOnly();
   }
 
   @Override
   public void setCatalog(String catalog) throws SQLException {
-    // TODO Auto-generated method stub
-    
+    assertNotClosed();
+    con.setCatalog(catalog);
   }
 
   @Override
   public String getCatalog() throws SQLException {
-    // TODO Auto-generated method stub
-    return null;
+    assertNotClosed();
+    return con.getCatalog();
   }
 
   @Override
   public void setTransactionIsolation(int level) throws SQLException {
-    // TODO Auto-generated method stub
-    
+    assertNotClosed();
+    con.setTransactionIsolation(level);
   }
 
   @Override
   public int getTransactionIsolation() throws SQLException {
-    // TODO Auto-generated method stub
-    return 0;
+    assertNotClosed();
+    return con.getTransactionIsolation();
   }
 
   @Override
   public SQLWarning getWarnings() throws SQLException {
-    // TODO Auto-generated method stub
-    return null;
+    assertNotClosed();
+    return con.getWarnings();
   }
 
   @Override
   public void clearWarnings() throws SQLException {
-    // TODO Auto-generated method stub
-    
+    assertNotClosed();
+    con.clearWarnings();
   }
 
   @Override
@@ -310,30 +334,6 @@ class ConnectionProxy implements Poolable, Connection {
   public int getHoldability() throws SQLException {
     // TODO Auto-generated method stub
     return 0;
-  }
-
-  @Override
-  public Savepoint setSavepoint() throws SQLException {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public Savepoint setSavepoint(String name) throws SQLException {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public void rollback(Savepoint savepoint) throws SQLException {
-    // TODO Auto-generated method stub
-    
-  }
-
-  @Override
-  public void releaseSavepoint(Savepoint savepoint) throws SQLException {
-    // TODO Auto-generated method stub
-    
   }
 
   @Override

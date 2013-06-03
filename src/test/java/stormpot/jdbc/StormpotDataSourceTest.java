@@ -331,4 +331,8 @@ public class StormpotDataSourceTest {
     assertFalse(con.isClosed());
     con.close();
   }
+  
+  // TODO connections must have autocommit mode enabled when claimed
+  // TODO connections must not have old warnings when claimed
+  // TODO connections must have cleared type-map when claimed
 }
