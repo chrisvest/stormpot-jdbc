@@ -122,6 +122,7 @@ public class StormpotDataSource implements DataSource {
         		"to claim a connection from the connection pool for " + delegate;
         throw new SQLTimeoutException(reason);
       }
+      con.reopen();
       return con;
     } catch (PoolException e) {
       throw new SQLException("Failed to claim connection from pool.", e);
@@ -136,6 +137,7 @@ public class StormpotDataSource implements DataSource {
     throw new SQLFeatureNotSupportedException(
         "The getConnection(username, password) method is not supported by " +
         "the connection pool in this version. You can work around this by " +
-        "using the unwrap method to get the delegate DataSource.");
+        "using the unwrap method to get the delegate DataSource, but then " +
+        "it won't be pooled.");
   }
 }

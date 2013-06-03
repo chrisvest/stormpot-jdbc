@@ -51,6 +51,21 @@ public class ConnectionProxyTest {
   }
   
   @Test public void
+  closingTwiceMustOnlyReleaseOnce() throws SQLException {
+    ConnectionProxy proxy = proxy();
+    proxy.close();
+    proxy.close();
+    verify(slot).release(proxy);
+  }
+  
+  @Test public void
+  mustBeInStateClosedAfterClose() throws SQLException {
+    ConnectionProxy proxy = proxy();
+    proxy.close();
+    assertTrue(proxy.isClosed());
+  }
+  
+  @Test public void
   canUnwrapConnectionInterface() throws SQLException {
     ConnectionProxy proxy = proxy();
     assertTrue(proxy.isWrapperFor(Connection.class));

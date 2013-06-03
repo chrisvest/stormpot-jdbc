@@ -15,6 +15,8 @@ import java.util.concurrent.TimeUnit;
 import javax.sql.DataSource;
 
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import stormpot.LifecycledPool;
 import stormpot.LifecycledResizablePool;
@@ -305,5 +307,28 @@ public class StormpotDataSourceTest {
   getConnectionByUsernameAndPasswordIsNotSupported() throws SQLException {
     DataSource ds = fixture().pool();
     ds.getConnection("username", "password");
+  }
+  
+  @Test public void
+  claimedConnectionsMustBeOpen() throws SQLException {
+    Fixture fixture = fixture();
+    when(fixture.delegate.getConnection()).thenAnswer(new Answer<Connection>() {
+      public Connection answer(InvocationOnMock invocation) throws Throwable {
+        return new ConnectionStub();
+      }
+    });
+    DataSource ds = fixture.pool();
+    Connection con;
+    
+    con = ds.getConnection();
+    assertFalse(con.isClosed());
+    con.close();
+    
+    // Here we are relying on BlazePool to give us the same exact connection
+    // back. Our test is relying on an implementation detail like that.
+    // I might have to re-think this test at some point.
+    con = ds.getConnection();
+    assertFalse(con.isClosed());
+    con.close();
   }
 }
