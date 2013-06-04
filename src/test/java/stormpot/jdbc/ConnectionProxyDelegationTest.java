@@ -4,13 +4,23 @@ import static org.mockito.Mockito.*;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.NClob;
+import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
+import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.SQLNonTransientException;
+import java.sql.Struct;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -293,20 +303,187 @@ public class ConnectionProxyDelegationTest {
     proxy.close();
     proxy.clearWarnings();
   }
+  
+  @Test public void
+  mustDelegateGetTypeMap() throws SQLException {
+    Map<String, Class<?>> typeMap = new HashMap<String, Class<?>>();
+    when(con.getTypeMap()).thenReturn(typeMap);
+    assertThat(proxy.getTypeMap(), sameInstance(typeMap));
+  }
+  
+  @Test(expected = SQLNonTransientException.class) public void
+  getTypeMapMustThrowIfClosed() throws SQLException {
+    proxy.close();
+    proxy.getTypeMap();
+  }
+  
+  @Test public void
+  mustDelegateSetTypeMap() throws SQLException {
+    Map<String, Class<?>> typeMap = new HashMap<String, Class<?>>();
+    proxy.setTypeMap(typeMap);
+    verify(con).setTypeMap(typeMap);
+  }
+  
+  @Test(expected = SQLNonTransientException.class) public void
+  setTypeMapMustThrowIfClosed() throws SQLException {
+    proxy.close();
+    proxy.setTypeMap(new HashMap<String, Class<?>>());
+  }
+  
+  @Test public void
+  mustDelegateSetHoldability() throws SQLException {
+    proxy.setHoldability(13);
+    verify(con).setHoldability(13);
+  }
+  
+  @Test(expected = SQLNonTransientException.class) public void
+  setHoldabilityMustThrowIfClosed() throws SQLException {
+    proxy.close();
+    proxy.setHoldability(13);
+  }
+  
+  @Test public void
+  mustDelegateGetHoldability() throws SQLException {
+    when(con.getHoldability()).thenReturn(13);
+    assertThat(proxy.getHoldability(), is(13));
+  }
+  
+  @Test(expected = SQLNonTransientException.class) public void
+  getHoldabilityMustThrowIfClosed() throws SQLException {
+    proxy.close();
+    proxy.getHoldability();
+  }
+  
+  @Test public void
+  mustDelegateCreateClob() throws SQLException {
+    Clob clob = new ClobStub();
+    when(con.createClob()).thenReturn(clob);
+    assertThat(proxy.createClob(), sameInstance(clob));
+  }
+  
+  @Test(expected = SQLNonTransientException.class) public void
+  createClobMustThrowIfClosed() throws SQLException {
+    proxy.close();
+    proxy.createClob();
+  }
+  
+  @Test public void
+  mustDelegateCreateBlob() throws SQLException {
+    Blob blob = new BlobStub();
+    when(con.createBlob()).thenReturn(blob);
+    assertThat(proxy.createBlob(), sameInstance(blob));
+  }
+  
+  @Test(expected = SQLNonTransientException.class) public void
+  createBlobMustThrowIfClosed() throws SQLException {
+    proxy.close();
+    proxy.createBlob();
+  }
+  
+  @Test public void
+  mustDelegateCreateNClob() throws SQLException {
+    NClob nclob = new NClobStub();
+    when(con.createNClob()).thenReturn(nclob);
+    assertThat(proxy.createNClob(), sameInstance(nclob));
+  }
+  
+  @Test(expected = SQLNonTransientException.class) public void
+  createNClobMustThrowIfClosed() throws SQLException {
+    proxy.close();
+    proxy.createNClob();
+  }
+  
+  @Test public void
+  mustDelegateCreateSQLXML() throws SQLException {
+    SQLXML sqlxml = new SQLXMLStub();
+    when(con.createSQLXML()).thenReturn(sqlxml);
+    assertThat(proxy.createSQLXML(), sameInstance(sqlxml));
+  }
+  
+  @Test(expected = SQLNonTransientException.class) public void
+  createSQLXMLMustThrowIfClosed() throws SQLException {
+    proxy.close();
+    proxy.createSQLXML();
+  }
+  
+  @Test public void
+  mustDelegateSetClientInfo1() throws SQLClientInfoException {
+    proxy.setClientInfo("k", "v");
+    verify(con).setClientInfo("k", "v");
+  }
+  
+  @Test(expected = SQLClientInfoException.class) public void
+  setClientInfoMustThrowIfClosed1() throws SQLException {
+    proxy.close();
+    proxy.setClientInfo("k", "v");
+  }
+  
+  @Test public void
+  mustDelegateSetClientInfo2() throws SQLClientInfoException {
+    Properties properties = new Properties();
+    proxy.setClientInfo(properties);
+    verify(con).setClientInfo(properties);
+  }
+  
+  @Test(expected = SQLClientInfoException.class) public void
+  setClientInfoMustThrowIfClosed2() throws SQLException {
+    proxy.close();
+    proxy.setClientInfo(new Properties());
+  }
+  
+  @Test public void
+  mustDelegateGetClientInfo1() throws SQLException {
+    when(con.getClientInfo("k")).thenReturn("v");
+    assertThat(proxy.getClientInfo("k"), is("v"));
+  }
+  
+  @Test(expected = SQLNonTransientException.class) public void
+  getClientInfoMustThrowIfClosed1() throws SQLException {
+    proxy.close();
+    proxy.getClientInfo("k");
+  }
+  
+  @Test public void
+  mustDelegateGetClientInfo2() throws SQLException {
+    Properties properties = new Properties();
+    when(con.getClientInfo()).thenReturn(properties);
+    assertThat(proxy.getClientInfo(), sameInstance(properties));
+  }
+  
+  @Test(expected = SQLNonTransientException.class) public void
+  getClientInfoMustThrowIfClosed2() throws SQLException {
+    proxy.close();
+    proxy.getClientInfo();
+  }
+  
+  @Test public void
+  mustDelegateCreateArrayOf() throws SQLException {
+    String typeName = "type";
+    Object[] elements = new Object[] {"a", "b", "c"};
+    Array array = new ArrayStub();
+    when(con.createArrayOf(typeName, elements)).thenReturn(array);
+    assertThat(proxy.createArrayOf(typeName, elements), sameInstance(array));
+    
+  }
+  
+  @Test(expected = SQLNonTransientException.class) public void
+  createArrayOfMustThrowIfClosed() throws SQLException {
+    proxy.close();
+    proxy.createArrayOf("typeName", new Object[] {});
+  }
+  
+  @Test public void
+  mustDelegateCreateStruct() throws SQLException {
+    String typeName = "type";
+    Object[] attributes = new Object[] {"a", "b", "c"};
+    Struct struct = new StructStub();
+    when(con.createStruct(typeName, attributes)).thenReturn(struct);
+    assertThat(proxy.createStruct(typeName, attributes), sameInstance(struct));
+  }
+  
+  @Test(expected = SQLNonTransientException.class) public void
+  createStructMustThrowIfClosed() throws SQLException {
+    proxy.close();
+    proxy.createStruct("type", new Object[] {});
+  }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

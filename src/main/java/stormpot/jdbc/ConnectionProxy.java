@@ -5,6 +5,7 @@ import static stormpot.jdbc.StormpotDataSource.NOT_WRAPPED;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
+import java.sql.ClientInfoStatus;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -18,6 +19,7 @@ import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -25,6 +27,7 @@ import stormpot.Poolable;
 import stormpot.Slot;
 
 class ConnectionProxy implements Poolable, Connection {
+  private static final String CLOSED_MESSAGE = "The connection is closed.";
 
   private final Slot slot;
   private final Connection con;
@@ -73,9 +76,24 @@ class ConnectionProxy implements Poolable, Connection {
   
   private void assertNotClosed() throws SQLException {
     if (isClosed) {
-      throw new SQLNonTransientException("The connection is closed.");
+      throw newConnectionClosedException();
     }
   }
+
+  private SQLNonTransientException newConnectionClosedException() {
+    return new SQLNonTransientException(CLOSED_MESSAGE);
+  }
+
+  @Override
+  public boolean isValid(int timeout) throws SQLException {
+    // This might introduce subtle interactions with custom Expirations.
+    // However, this is correct, and people should unwrap the connection
+    // if they want to access the raw isValid and its behaviour.
+    return !isClosed && con.isValid(timeout);
+  }
+  
+  
+  
   
   @SuppressWarnings("unchecked")
   @Override
@@ -314,95 +332,108 @@ class ConnectionProxy implements Poolable, Connection {
 
   @Override
   public Map<String, Class<?>> getTypeMap() throws SQLException {
-    // TODO Auto-generated method stub
-    return null;
+    assertNotClosed();
+    return con.getTypeMap();
   }
 
   @Override
   public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
-    // TODO Auto-generated method stub
-    
+    assertNotClosed();
+    con.setTypeMap(map);
   }
 
   @Override
   public void setHoldability(int holdability) throws SQLException {
-    // TODO Auto-generated method stub
-    
+    assertNotClosed();
+    con.setHoldability(holdability);
   }
 
   @Override
   public int getHoldability() throws SQLException {
-    // TODO Auto-generated method stub
-    return 0;
+    assertNotClosed();
+    return con.getHoldability();
   }
 
   @Override
   public Clob createClob() throws SQLException {
-    // TODO Auto-generated method stub
-    return null;
+    assertNotClosed();
+    return con.createClob();
   }
 
   @Override
   public Blob createBlob() throws SQLException {
-    // TODO Auto-generated method stub
-    return null;
+    assertNotClosed();
+    return con.createBlob();
   }
 
   @Override
   public NClob createNClob() throws SQLException {
-    // TODO Auto-generated method stub
-    return null;
+    assertNotClosed();
+    return con.createNClob();
   }
 
   @Override
   public SQLXML createSQLXML() throws SQLException {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public boolean isValid(int timeout) throws SQLException {
-    // TODO Auto-generated method stub
-    return false;
+    assertNotClosed();
+    return con.createSQLXML();
   }
 
   @Override
   public void setClientInfo(String name, String value)
       throws SQLClientInfoException {
-    // TODO Auto-generated method stub
-    
+    if (isClosed) {
+      Map<String, ClientInfoStatus> failures =
+          new HashMap<String, ClientInfoStatus>();
+      failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
+      throw newClientInfoException(failures);
+    }
+    con.setClientInfo(name, value);
   }
 
   @Override
   public void setClientInfo(Properties properties)
       throws SQLClientInfoException {
-    // TODO Auto-generated method stub
-    
+    if (isClosed) {
+      Map<String, ClientInfoStatus> failures =
+          new HashMap<String, ClientInfoStatus>();
+      for (Map.Entry<Object, Object> entry : properties.entrySet()) {
+        String key = entry.getKey().toString();
+        failures.put(key, ClientInfoStatus.REASON_UNKNOWN);
+      }
+      throw newClientInfoException(failures);
+    }
+    con.setClientInfo(properties);
+  }
+
+  private SQLClientInfoException newClientInfoException(
+      Map<String, ClientInfoStatus> failures) {
+    SQLException cause = newConnectionClosedException();
+    return new SQLClientInfoException(CLOSED_MESSAGE, failures, cause);
   }
 
   @Override
   public String getClientInfo(String name) throws SQLException {
-    // TODO Auto-generated method stub
-    return null;
+    assertNotClosed();
+    return con.getClientInfo(name);
   }
 
   @Override
   public Properties getClientInfo() throws SQLException {
-    // TODO Auto-generated method stub
-    return null;
+    assertNotClosed();
+    return con.getClientInfo();
   }
 
   @Override
   public Array createArrayOf(String typeName, Object[] elements)
       throws SQLException {
-    // TODO Auto-generated method stub
-    return null;
+    assertNotClosed();
+    return con.createArrayOf(typeName, elements);
   }
 
   @Override
   public Struct createStruct(String typeName, Object[] attributes)
       throws SQLException {
-    // TODO Auto-generated method stub
-    return null;
+    assertNotClosed();
+    return con.createStruct(typeName, attributes);
   }
 }

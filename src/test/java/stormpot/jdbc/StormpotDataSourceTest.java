@@ -335,4 +335,6 @@ public class StormpotDataSourceTest {
   // TODO connections must have autocommit mode enabled when claimed
   // TODO connections must not have old warnings when claimed
   // TODO connections must have cleared type-map when claimed
+  // TODO connections must reset to the default result set holdability when claimed
+  // TODO connections must reset client info properties when claimed
 }
