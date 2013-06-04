@@ -145,7 +145,10 @@ public class StormpotDataSource implements DataSource {
   // JDBC 4.1 / JDK 1.7:
 
   public Logger getParentLogger() throws SQLFeatureNotSupportedException {
-    // TODO Auto-generated method stub
-    return null;
+    throw new SQLFeatureNotSupportedException(
+        "Stormpot-jdbc does not use java.util.logging, nor does it delegate " +
+        "the call to the underlying DataSource because of Java6 " +
+        "compatibility. If you need the parent logger, then unwrap the " +
+        "underlying DataSource and call getParentLogger on that instead.");
   }
 }

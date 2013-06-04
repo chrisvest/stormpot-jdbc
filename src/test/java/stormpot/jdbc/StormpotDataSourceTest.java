@@ -309,6 +309,12 @@ public class StormpotDataSourceTest {
     ds.getConnection("username", "password");
   }
   
+  @Test(expected = SQLFeatureNotSupportedException.class) public void
+  getParentLoggerIsNotSupported() throws SQLFeatureNotSupportedException {
+    StormpotDataSource ds = (StormpotDataSource) fixture().pool();
+    ds.getParentLogger();
+  }
+  
   @Test public void
   claimedConnectionsMustBeOpen() throws SQLException {
     Fixture fixture = fixture();
