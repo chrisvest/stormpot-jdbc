@@ -206,4 +206,13 @@ public class StatementStub implements Statement {
   public boolean isPoolable() throws SQLException {
     return false;
   }
+
+  // JDBC 4.1 / JDK 1.7:
+
+  public void closeOnCompletion() throws SQLException {
+  }
+
+  public boolean isCloseOnCompletion() throws SQLException {
+    return false;
+  }
 }

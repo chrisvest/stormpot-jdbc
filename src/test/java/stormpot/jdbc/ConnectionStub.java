@@ -17,6 +17,7 @@ import java.sql.Statement;
 import java.sql.Struct;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Executor;
 
 public class ConnectionStub implements Connection {
 
@@ -262,5 +263,25 @@ public class ConnectionStub implements Connection {
   public Struct createStruct(String typeName, Object[] attributes)
       throws SQLException {
     return null;
+  }
+
+  // JDBC 4.1 / JDK 1.7:
+
+  public void setSchema(String schema) throws SQLException {
+  }
+
+  public String getSchema() throws SQLException {
+    return null;
+  }
+
+  public void abort(Executor executor) throws SQLException {
+  }
+
+  public void setNetworkTimeout(Executor executor, int milliseconds)
+      throws SQLException {
+  }
+
+  public int getNetworkTimeout() throws SQLException {
+    return 0;
   }
 }

@@ -6,7 +6,9 @@ package stormpot.jdbc;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.concurrent.locks.LockSupport;
+import java.util.logging.Logger;
 
 import javax.sql.DataSource;
 
@@ -49,6 +51,12 @@ public class BlockingDataSource implements DataSource {
   public Connection getConnection(String username, String password)
       throws SQLException {
     LockSupport.park();
+    return null;
+  }
+
+  // JDBC 4.1 / JDK 1.7:
+  
+  public Logger getParentLogger() throws SQLFeatureNotSupportedException {
     return null;
   }
 }

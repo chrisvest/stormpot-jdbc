@@ -22,6 +22,7 @@ import java.sql.Struct;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Executor;
 
 import stormpot.Poolable;
 import stormpot.Slot;
@@ -435,5 +436,33 @@ class ConnectionProxy implements Poolable, Connection {
       throws SQLException {
     assertNotClosed();
     return con.createStruct(typeName, attributes);
+  }
+
+  // JDBC 4.1 / JDK 1.7:
+
+  public void setSchema(String schema) throws SQLException {
+    // TODO Auto-generated method stub
+    
+  }
+
+  public String getSchema() throws SQLException {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  public void abort(Executor executor) throws SQLException {
+    // TODO Auto-generated method stub
+    
+  }
+
+  public void setNetworkTimeout(Executor executor, int milliseconds)
+      throws SQLException {
+    // TODO Auto-generated method stub
+    
+  }
+
+  public int getNetworkTimeout() throws SQLException {
+    // TODO Auto-generated method stub
+    return 0;
   }
 }

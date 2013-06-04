@@ -6,6 +6,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLTimeoutException;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 import javax.sql.DataSource;
 
@@ -139,5 +140,12 @@ public class StormpotDataSource implements DataSource {
         "the connection pool in this version. You can work around this by " +
         "using the unwrap method to get the delegate DataSource, but then " +
         "it won't be pooled.");
+  }
+
+  // JDBC 4.1 / JDK 1.7:
+
+  public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+    // TODO Auto-generated method stub
+    return null;
   }
 }

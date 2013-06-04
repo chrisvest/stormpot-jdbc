@@ -903,4 +903,15 @@ public class DatabaseMetaDataStub implements DatabaseMetaData {
       String functionNamePattern, String columnNamePattern) throws SQLException {
     return null;
   }
+
+  // JDBC 4.1 / JDK 1.7:
+
+  public ResultSet getPseudoColumns(String catalog, String schemaPattern,
+      String tableNamePattern, String columnNamePattern) throws SQLException {
+    return null;
+  }
+
+  public boolean generatedKeyAlwaysReturned() throws SQLException {
+    return false;
+  }
 }
