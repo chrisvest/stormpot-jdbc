@@ -149,7 +149,8 @@ public class GenerateAdaptors {
     
     Set<Method> throwers = new HashSet<Method>();
     if (qualifier == 40) {
-      throwers.addAll(Arrays.asList(cls.getDeclaredMethods()));
+      Class<?> compatibilityClass = cls.getInterfaces()[0];
+      throwers.addAll(Arrays.asList(compatibilityClass.getDeclaredMethods()));
       throwers.removeAll(ignored);
       delegators.removeAll(throwers);
     }
