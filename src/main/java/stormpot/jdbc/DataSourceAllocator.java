@@ -8,6 +8,8 @@ import stormpot.Allocator;
 import stormpot.Slot;
 
 class DataSourceAllocator implements Allocator<ConnectionProxy> {
+  private static final AdaptorFactory adaptor =
+      AdaptorMetaFactory.getAdaptorFactory();
 
   private final DataSource delegate;
 
@@ -17,8 +19,13 @@ class DataSourceAllocator implements Allocator<ConnectionProxy> {
 
   @Override
   public ConnectionProxy allocate(Slot slot) throws Exception {
-    Connection con = delegate.getConnection();
-    return new ConnectionProxy(slot, con);
+    Connection connection = delegate.getConnection();
+    Jdbc41ConnectionDelegate adaptor = adapt(connection);
+    return new ConnectionProxy(slot, adaptor);
+  }
+
+  private Jdbc41ConnectionDelegate adapt(Connection connection) {
+    return adaptor.adapt(connection);
   }
 
   @Override

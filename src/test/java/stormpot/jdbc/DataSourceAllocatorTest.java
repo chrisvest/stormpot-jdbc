@@ -60,4 +60,6 @@ public class DataSourceAllocatorTest {
     ConnectionProxy proxy = allocator.allocate(slot);
     allocator.deallocate(proxy);
   }
+  
+  // TODO must wrap connection in jdbc 4.1 adaptor
 }

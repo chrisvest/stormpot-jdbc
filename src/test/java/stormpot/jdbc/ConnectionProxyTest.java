@@ -17,24 +17,27 @@ import org.junit.Before;
 import org.junit.Test;
 
 import stormpot.Slot;
+import stormpot.jdbc.stubs.ConnectionStub;
 
 public class ConnectionProxyTest {
+  private static final AdaptorFactory adaptor =
+      AdaptorMetaFactory.getAdaptorFactory();
   Slot slot;
-  Connection con;
+  Jdbc41Connection con;
   
   @Before public void
   setUp() {
     slot = mock(Slot.class);
-    con = mock(Connection.class);
+    con = mock(Jdbc41ConnectionDelegate.class);
   }
 
   private ConnectionProxy proxy() {
-    return new ConnectionProxy(slot, con);
+    return new ConnectionProxy(slot, adaptor.adapt(con));
   }
   
   @Test(expected = IllegalArgumentException.class) public void
   slotCannotBeNull() {
-    new ConnectionProxy(null, con);
+    new ConnectionProxy(null, adaptor.adapt(con));
   }
   
   @Test(expected = IllegalArgumentException.class) public void
@@ -112,7 +115,7 @@ public class ConnectionProxyTest {
   @Test public void
   mustUnwrapConnectionInterface() throws SQLException {
     ConnectionProxy proxy = proxy();
-    assertThat(proxy.unwrap(Connection.class), sameInstance(con));
+    assertThat(proxy.unwrap(Connection.class), sameInstance((Object) con));
   }
   
   @Test public void

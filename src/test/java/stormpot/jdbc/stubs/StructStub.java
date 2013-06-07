@@ -1,4 +1,4 @@
-package stormpot.jdbc;
+package stormpot.jdbc.stubs;
 
 import java.sql.SQLException;
 import java.sql.Struct;

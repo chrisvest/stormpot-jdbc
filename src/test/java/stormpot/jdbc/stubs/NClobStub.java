@@ -1,13 +1,14 @@
-package stormpot.jdbc;
+package stormpot.jdbc.stubs;
 
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
 import java.sql.Clob;
+import java.sql.NClob;
 import java.sql.SQLException;
 
-public class ClobStub implements Clob {
+public class NClobStub implements NClob {
 
   @Override
   public long length() throws SQLException {

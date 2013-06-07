@@ -1,4 +1,4 @@
-package stormpot.jdbc;
+package stormpot.jdbc.stubs;
 
 import java.sql.Array;
 import java.sql.Blob;
@@ -19,7 +19,15 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
-public class ConnectionStub implements Connection {
+import stormpot.jdbc.PublicJdbc41Connection;
+
+public class ConnectionStub implements PublicJdbc41Connection {
+
+  @Override
+  public Connection _stormpot_delegate() {
+    // TODO Auto-generated method stub
+    return null;
+  }
 
   @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
@@ -267,20 +275,25 @@ public class ConnectionStub implements Connection {
 
   // JDBC 4.1 / JDK 1.7:
 
+  @Override
   public void setSchema(String schema) throws SQLException {
   }
 
+  @Override
   public String getSchema() throws SQLException {
     return null;
   }
 
+  @Override
   public void abort(Executor executor) throws SQLException {
   }
 
+  @Override
   public void setNetworkTimeout(Executor executor, int milliseconds)
       throws SQLException {
   }
 
+  @Override
   public int getNetworkTimeout() throws SQLException {
     return 0;
   }

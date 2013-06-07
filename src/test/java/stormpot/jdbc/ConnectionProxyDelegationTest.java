@@ -7,7 +7,6 @@ import static org.junit.Assert.*;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
-import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.NClob;
 import java.sql.SQLClientInfoException;
@@ -26,18 +25,27 @@ import org.junit.Before;
 import org.junit.Test;
 
 import stormpot.Slot;
+import stormpot.jdbc.stubs.ArrayStub;
+import stormpot.jdbc.stubs.BlobStub;
+import stormpot.jdbc.stubs.ClobStub;
+import stormpot.jdbc.stubs.DatabaseMetaDataStub;
+import stormpot.jdbc.stubs.NClobStub;
+import stormpot.jdbc.stubs.SQLXMLStub;
+import stormpot.jdbc.stubs.SavepointStub;
+import stormpot.jdbc.stubs.StatementStub;
+import stormpot.jdbc.stubs.StructStub;
 
 public class ConnectionProxyDelegationTest {
   Statement statementStub = new StatementStub();
   
   Slot slot;
-  Connection con;
+  Jdbc41ConnectionDelegate con;
   ConnectionProxy proxy;
   
   @Before public void
   setUp() {
     slot = mock(Slot.class);
-    con = mock(Connection.class);
+    con = mock(Jdbc41ConnectionDelegate.class);
     proxy = new ConnectionProxy(slot, con);
   }
   
@@ -485,5 +493,29 @@ public class ConnectionProxyDelegationTest {
   createStructMustThrowIfClosed() throws SQLException {
     proxy.close();
     proxy.createStruct("type", new Object[] {});
+  }
+  
+  @Test public void
+  mustDelegateSetSchema() throws SQLException {
+    proxy.setSchema("schema");
+    verify(con).setSchema("schema");
+  }
+  
+  @Test(expected = SQLNonTransientException.class) public void
+  setSchemaMustThrowIfClosed() throws SQLException {
+    proxy.close();
+    proxy.setSchema("schema");
+  }
+  
+  @Test public void
+  mustDelegateGetSchema() throws SQLException {
+    when(con.getSchema()).thenReturn("schema");
+    assertThat(proxy.getSchema(), is("schema"));
+  }
+  
+  @Test(expected = SQLNonTransientException.class) public void
+  getSchemaMustThrowIfClosed() throws SQLException {
+    proxy.close();
+    proxy.getSchema();
   }
 }

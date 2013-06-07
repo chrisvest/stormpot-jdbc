@@ -22,6 +22,7 @@ import stormpot.LifecycledPool;
 import stormpot.LifecycledResizablePool;
 import stormpot.Pool;
 import stormpot.ResizablePool;
+import stormpot.jdbc.stubs.ConnectionStub;
 
 public class StormpotDataSourceTest {
   private static final PrintWriter LOG_WRITER =

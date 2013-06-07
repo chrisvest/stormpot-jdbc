@@ -27,18 +27,18 @@ import java.util.concurrent.Executor;
 import stormpot.Poolable;
 import stormpot.Slot;
 
-class ConnectionProxy implements Poolable, Connection {
+class ConnectionProxy implements Poolable, Jdbc41Connection {
   private static final String CLOSED_MESSAGE = "The connection is closed.";
 
   private final Slot slot;
-  private final Connection con;
+  private final Jdbc41ConnectionDelegate con;
   
   // This field is unprotected because a ConnectionProxy is, by virtue of the
   // pool, only ever accessed by a single thread at a time.
   // Connections are not promised to be thread-safe anyway.
   private boolean isClosed;
 
-  public ConnectionProxy(Slot slot, Connection con) {
+  public ConnectionProxy(Slot slot, Jdbc41ConnectionDelegate con) {
     if (slot == null) {
       throw new IllegalArgumentException("The slot parameter cannot be null.");
     }
@@ -108,8 +108,9 @@ class ConnectionProxy implements Poolable, Connection {
     if (obj != NOT_WRAPPED) {
       return (T) obj;
     }
-    if (con.isWrapperFor(iface)) {
-      return con.unwrap(iface);
+    Connection delegate = con._stormpot_delegate();
+    if (delegate.isWrapperFor(iface)) {
+      return delegate.unwrap(iface);
     }
     throw new SQLException("Found no wrapped implementation of " + iface);
   }
@@ -122,12 +123,14 @@ class ConnectionProxy implements Poolable, Connection {
     }
     
     boolean canDirectlyUnwrap = unwrapObject(iface) != NOT_WRAPPED;
-    return canDirectlyUnwrap || con.isWrapperFor(iface);
+    Connection delegate = con._stormpot_delegate();
+    return canDirectlyUnwrap || delegate.isWrapperFor(iface);
   }
   
   private Object unwrapObject(Class<?> type) {
-    if (type.isAssignableFrom(con.getClass())) {
-      return con;
+    Connection delegate = con._stormpot_delegate();
+    if (type.isAssignableFrom(delegate.getClass())) {
+      return delegate;
     }
     return NOT_WRAPPED;
   }
@@ -440,27 +443,32 @@ class ConnectionProxy implements Poolable, Connection {
 
   // JDBC 4.1 / JDK 1.7:
 
+  @Override
   public void setSchema(String schema) throws SQLException {
-    // TODO Auto-generated method stub
-    
+    assertNotClosed();
+    con.setSchema(schema);
   }
 
+  @Override
   public String getSchema() throws SQLException {
-    // TODO Auto-generated method stub
-    return null;
+    assertNotClosed();
+    return con.getSchema();
   }
 
+  @Override
   public void abort(Executor executor) throws SQLException {
     // TODO Auto-generated method stub
     
   }
 
+  @Override
   public void setNetworkTimeout(Executor executor, int milliseconds)
       throws SQLException {
     // TODO Auto-generated method stub
     
   }
 
+  @Override
   public int getNetworkTimeout() throws SQLException {
     // TODO Auto-generated method stub
     return 0;
