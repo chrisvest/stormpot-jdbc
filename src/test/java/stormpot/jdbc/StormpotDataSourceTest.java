@@ -29,14 +29,24 @@ public class StormpotDataSourceTest {
       new PrintWriter(new StringWriter());
   
   class Fixture {
-    DataSource delegate;
+    JdbcConfig config;
 
     public Fixture() {
-      delegate = mock(DataSource.class);
+      DataSource delegate = mock(DataSource.class);
+      config = new JdbcConfig();
+      config.setDataSource(delegate);
     }
 
     public DataSource pool() {
-      return new StormpotDataSource(delegate);
+      return new StormpotDataSource(config);
+    }
+    
+    public DataSource delegate() {
+      return config.getDataSource();
+    }
+    
+    public void delegate(DataSource ds) {
+      config.setDataSource(ds);
     }
   }
   
@@ -48,7 +58,7 @@ public class StormpotDataSourceTest {
   
   // constructors:
   @Test(expected = IllegalArgumentException.class) public void
-  dataSourceCannotBeNull() {
+  jdbcConfigCannotBeNull() {
     new StormpotDataSource(null);
   }
   
@@ -73,13 +83,14 @@ public class StormpotDataSourceTest {
     Fixture fixture = fixture();
     DataSource ds = fixture.pool();
     ds.setLogWriter(LOG_WRITER);
-    verify(fixture.delegate).setLogWriter(LOG_WRITER);
+    verify(fixture.delegate()).setLogWriter(LOG_WRITER);
   }
   
   @Test public void
   mustNotRememberLogWriterIfDelegateThrows() throws SQLException {
     Fixture fixture = fixture();
-    doThrow(new SQLException()).when(fixture.delegate).setLogWriter(LOG_WRITER);
+    doThrow(new SQLException()).when(
+        fixture.delegate()).setLogWriter(LOG_WRITER);
     DataSource ds = fixture.pool();
     try {
       ds.setLogWriter(LOG_WRITER);
@@ -106,13 +117,14 @@ public class StormpotDataSourceTest {
     Fixture fixture = fixture();
     DataSource ds = fixture.pool();
     ds.setLoginTimeout(10);
-    verify(fixture.delegate).setLoginTimeout(10);
+    verify(fixture.delegate()).setLoginTimeout(10);
   }
   
   @Test public void
   mustNotSetLoginTimeoutIfDelegateThrows() throws SQLException {
     Fixture fixture = fixture();
-    doThrow(new SQLException()).when(fixture.delegate).setLoginTimeout(10);
+    doThrow(new SQLException()).when(
+        fixture.delegate()).setLoginTimeout(10);
     DataSource ds = fixture.pool();
     try {
       ds.setLoginTimeout(10);
@@ -124,13 +136,16 @@ public class StormpotDataSourceTest {
   @Test(timeout = 2000) public void
   mustUseLoginTimeoutAsClaimTimeout() throws SQLException {
     Fixture fixture = fixture();
-    fixture.delegate = new BlockingDataSource();
+    fixture.delegate(new BlockingDataSource());
     DataSource ds = fixture.pool();
     ds.setLoginTimeout(1);
     long start = System.nanoTime();
     try {
-      ds.getConnection();
-      fail("Should have thrown an exception about timeout!");
+      Connection con = ds.getConnection();
+      fail("Should have thrown an exception about timeout! " +
+      		"Instead got this after " +
+          TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) +
+      		" milliseconds: " + con);
     } catch (SQLTimeoutException _) {}
     long end = System.nanoTime();
     assertThat(end - start, greaterThanOrEqualTo(TimeUnit.SECONDS.toNanos(1)));
@@ -173,13 +188,14 @@ public class StormpotDataSourceTest {
   mustUnwrapDataSourceInterface() throws SQLException {
     Fixture fixture = fixture();
     DataSource ds = fixture.pool();
-    assertThat(ds.unwrap(DataSource.class), sameInstance(fixture.delegate));
+    assertThat(ds.unwrap(DataSource.class),
+        sameInstance(fixture.delegate()));
   }
   
   @Test public void
   canUnwrapDataSourceSpecificClass() throws SQLException {
     Fixture fixture = fixture();
-    fixture.delegate = new BlockingDataSource();
+    fixture.delegate(new BlockingDataSource());
     DataSource ds = fixture.pool();
     assertTrue(ds.isWrapperFor(BlockingDataSource.class));
   }
@@ -187,10 +203,11 @@ public class StormpotDataSourceTest {
   @Test public void
   mustUnwrapDataSourceSpecificClass() throws SQLException {
     Fixture fixture = fixture();
-    fixture.delegate = new BlockingDataSource();
+    fixture.delegate(new BlockingDataSource());
     DataSource ds = fixture.pool();
     assertThat(
-        ds.unwrap(BlockingDataSource.class), sameInstance(fixture.delegate));
+        ds.unwrap(BlockingDataSource.class),
+        sameInstance(fixture.delegate()));
   }
   
   @Test public void
@@ -244,7 +261,7 @@ public class StormpotDataSourceTest {
   @Test public void
   canUnwrapIfDelegateCanUnwrap() throws SQLException {
     Fixture fixture = fixture();
-    when(fixture.delegate.isWrapperFor(String.class)).thenReturn(true);
+    when(fixture.delegate().isWrapperFor(String.class)).thenReturn(true);
     DataSource ds = fixture.pool();
     assertTrue(ds.isWrapperFor(String.class));
   }
@@ -253,8 +270,8 @@ public class StormpotDataSourceTest {
   unwrapMustDelegateForUnknownTypes() throws SQLException {
     String obj = "a string";
     Fixture fixture = fixture();
-    when(fixture.delegate.isWrapperFor(String.class)).thenReturn(true);
-    when(fixture.delegate.unwrap(String.class)).thenReturn(obj);
+    when(fixture.delegate().isWrapperFor(String.class)).thenReturn(true);
+    when(fixture.delegate().unwrap(String.class)).thenReturn(obj);
     DataSource ds = fixture.pool();
     assertThat(ds.unwrap(String.class), is(obj));
   }
@@ -266,7 +283,7 @@ public class StormpotDataSourceTest {
   getConnectionMustClaimFromPool() throws SQLException {
     Connection con = mock(Connection.class);
     Fixture fixture = fixture();
-    when(fixture.delegate.getConnection()).thenReturn(con);
+    when(fixture.delegate().getConnection()).thenReturn(con);
     DataSource ds = fixture.pool();
     Connection proxy = ds.getConnection();
     assertThat(proxy.unwrap(Connection.class), sameInstance(con));
@@ -275,7 +292,7 @@ public class StormpotDataSourceTest {
   @Test(expected = SQLTimeoutException.class) public void
   mustThrowIfClaimTimesOut() throws SQLException {
     Fixture fixture = fixture();
-    fixture.delegate = new BlockingDataSource();
+    fixture.delegate(new BlockingDataSource());
     DataSource ds = fixture.pool();
     ds.setLoginTimeout(0);
     ds.getConnection();
@@ -292,7 +309,7 @@ public class StormpotDataSourceTest {
   mustWrapPoolExceptionsFromClaim() throws SQLException {
     Throwable exception = new SQLException("Boom!");
     Fixture fixture = fixture();
-    when(fixture.delegate.getConnection()).thenThrow(exception);
+    when(fixture.delegate().getConnection()).thenThrow(exception);
     DataSource ds = fixture.pool();
     try {
       ds.getConnection();
@@ -319,7 +336,7 @@ public class StormpotDataSourceTest {
   @Test public void
   claimedConnectionsMustBeOpen() throws SQLException {
     Fixture fixture = fixture();
-    when(fixture.delegate.getConnection()).thenAnswer(new Answer<Connection>() {
+    when(fixture.delegate().getConnection()).thenAnswer(new Answer<Connection>() {
       public Connection answer(InvocationOnMock invocation) throws Throwable {
         return new ConnectionStub();
       }

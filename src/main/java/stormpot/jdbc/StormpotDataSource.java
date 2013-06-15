@@ -10,7 +10,6 @@ import java.util.logging.Logger;
 
 import javax.sql.DataSource;
 
-import stormpot.Allocator;
 import stormpot.Config;
 import stormpot.Pool;
 import stormpot.PoolException;
@@ -23,7 +22,6 @@ public class StormpotDataSource implements DataSource {
   static final Object NOT_WRAPPED = new Object();
   
   private final DataSource delegate;
-  private final Allocator<ConnectionProxy> allocator;
   private final Pool<ConnectionProxy> pool;
   
   // Fields guarded by the 'this' lock:
@@ -38,17 +36,21 @@ public class StormpotDataSource implements DataSource {
   // getConnection method.
   private volatile Timeout timeout;
   
-  public StormpotDataSource(DataSource delegate) {
-    if (delegate == null) {
-      throw new IllegalArgumentException(
-          "The delegate DataSource cannot be null");
+  public StormpotDataSource(JdbcConfig jdbcConfig) {
+    if (jdbcConfig == null) {
+      throw new IllegalArgumentException("JdbcConfig cannot be null");
     }
-    this.delegate = delegate;
-    this.allocator = new DataSourceAllocator(delegate);
-    Config<ConnectionProxy> config = new Config<ConnectionProxy>();
-    config.setAllocator(allocator);
-    this.pool = new BlazePool<ConnectionProxy>(config);
-    this.timeout = new Timeout(30, TimeUnit.SECONDS);
+    synchronized (jdbcConfig) {
+      this.delegate = jdbcConfig.getDataSource();
+      if (delegate == null) {
+        throw new IllegalArgumentException(
+            "The delegate DataSource cannot be null");
+      }
+      jdbcConfig.validate();
+      Config<ConnectionProxy> config = jdbcConfig.buildPoolConfig();
+      this.pool = new BlazePool<ConnectionProxy>(config);
+      this.timeout = new Timeout(30, TimeUnit.SECONDS);
+    }
   }
 
   @Override

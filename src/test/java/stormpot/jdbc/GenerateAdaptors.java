@@ -20,10 +20,10 @@ public class GenerateAdaptors {
     generateAdaptorFactory(41);
   }
   
-  private static void generateAdaptorFactory(int qualifier)
+  private static void generateAdaptorFactory(int jdbcVersion)
       throws Exception {
     String pkg = "stormpot/jdbc/";
-    String prefix = pkg + "Jdbc" + qualifier;
+    String prefix = pkg + "Jdbc" + jdbcVersion;
     String objectClass = "java/lang/Object";
     
     String factoryClass = prefix + "AdaptorFactory";
@@ -90,17 +90,17 @@ public class GenerateAdaptors {
         connectionAdaptorClass,
         connectionIface,
         connectionAdaptorIface,
-        qualifier);
+        jdbcVersion);
     generateAdaptor(
         callableStmtAdaptorClass,
         callableStmtIface,
         callableStmtAdaptorIface,
-        qualifier);
+        jdbcVersion);
     generateAdaptor(
         preparedStmtAdaptorClass,
         preparedStmtIface,
         preparedStmtAdaptorIface,
-        qualifier);
+        jdbcVersion);
   }
 
   private static void generateAdaptMethod(
