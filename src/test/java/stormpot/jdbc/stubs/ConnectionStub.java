@@ -23,9 +23,10 @@ import stormpot.jdbc.PublicJdbc41Connection;
 
 public class ConnectionStub implements PublicJdbc41Connection {
 
+  private boolean autoCommit = true;
+
   @Override
   public Connection _stormpot_delegate() {
-    // TODO Auto-generated method stub
     return null;
   }
 
@@ -61,11 +62,12 @@ public class ConnectionStub implements PublicJdbc41Connection {
 
   @Override
   public void setAutoCommit(boolean autoCommit) throws SQLException {
+    this.autoCommit = autoCommit;
   }
 
   @Override
   public boolean getAutoCommit() throws SQLException {
-    return false;
+    return autoCommit;
   }
 
   @Override

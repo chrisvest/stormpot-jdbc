@@ -126,6 +126,7 @@ public class StormpotDataSource implements DataSource {
         throw new SQLTimeoutException(reason);
       }
       con.reopen();
+      con.setAutoCommit(true);
       return con;
     } catch (PoolException e) {
       throw new SQLException("Failed to claim connection from pool.", e);

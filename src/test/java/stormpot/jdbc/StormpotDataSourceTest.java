@@ -22,6 +22,7 @@ import stormpot.LifecycledPool;
 import stormpot.LifecycledResizablePool;
 import stormpot.Pool;
 import stormpot.ResizablePool;
+import stormpot.jdbc.stubs.BlockingDataSourceStub;
 import stormpot.jdbc.stubs.ConnectionStub;
 
 public class StormpotDataSourceTest {
@@ -136,7 +137,7 @@ public class StormpotDataSourceTest {
   @Test(timeout = 2000) public void
   mustUseLoginTimeoutAsClaimTimeout() throws SQLException {
     Fixture fixture = fixture();
-    fixture.delegate(new BlockingDataSource());
+    fixture.delegate(new BlockingDataSourceStub());
     DataSource ds = fixture.pool();
     ds.setLoginTimeout(1);
     long start = System.nanoTime();
@@ -195,18 +196,18 @@ public class StormpotDataSourceTest {
   @Test public void
   canUnwrapDataSourceSpecificClass() throws SQLException {
     Fixture fixture = fixture();
-    fixture.delegate(new BlockingDataSource());
+    fixture.delegate(new BlockingDataSourceStub());
     DataSource ds = fixture.pool();
-    assertTrue(ds.isWrapperFor(BlockingDataSource.class));
+    assertTrue(ds.isWrapperFor(BlockingDataSourceStub.class));
   }
   
   @Test public void
   mustUnwrapDataSourceSpecificClass() throws SQLException {
     Fixture fixture = fixture();
-    fixture.delegate(new BlockingDataSource());
+    fixture.delegate(new BlockingDataSourceStub());
     DataSource ds = fixture.pool();
     assertThat(
-        ds.unwrap(BlockingDataSource.class),
+        ds.unwrap(BlockingDataSourceStub.class),
         sameInstance(fixture.delegate()));
   }
   
@@ -292,7 +293,7 @@ public class StormpotDataSourceTest {
   @Test(expected = SQLTimeoutException.class) public void
   mustThrowIfClaimTimesOut() throws SQLException {
     Fixture fixture = fixture();
-    fixture.delegate(new BlockingDataSource());
+    fixture.delegate(new BlockingDataSourceStub());
     DataSource ds = fixture.pool();
     ds.setLoginTimeout(0);
     ds.getConnection();
@@ -336,11 +337,8 @@ public class StormpotDataSourceTest {
   @Test public void
   claimedConnectionsMustBeOpen() throws SQLException {
     Fixture fixture = fixture();
-    when(fixture.delegate().getConnection()).thenAnswer(new Answer<Connection>() {
-      public Connection answer(InvocationOnMock invocation) throws Throwable {
-        return new ConnectionStub();
-      }
-    });
+    when(fixture.delegate().getConnection()).thenAnswer(newConnectionStub());
+    fixture.config.setPoolSize(1);
     DataSource ds = fixture.pool();
     Connection con;
     
@@ -348,15 +346,37 @@ public class StormpotDataSourceTest {
     assertFalse(con.isClosed());
     con.close();
     
-    // Here we are relying on BlazePool to give us the same exact connection
-    // back. Our test is relying on an implementation detail like that.
-    // I might have to re-think this test at some point.
     con = ds.getConnection();
     assertFalse(con.isClosed());
     con.close();
   }
+
+  private Answer<Connection> newConnectionStub() {
+    return new Answer<Connection>() {
+      public Connection answer(InvocationOnMock invocation) throws Throwable {
+        return new ConnectionStub();
+      }
+    };
+  }
   
-  // TODO connections must have autocommit mode enabled when claimed
+  @Test public void
+  connectionsMustHaveAutoCommitModeEnabledWhenClaimed() throws SQLException {
+    Fixture fixture = fixture();
+    when(fixture.delegate().getConnection()).thenAnswer(newConnectionStub());
+    fixture.config.setPoolSize(1);
+    DataSource ds = fixture.pool();
+    Connection con;
+    
+    con = ds.getConnection();
+    assertTrue(con.getAutoCommit());
+    con.setAutoCommit(false);
+    con.close();
+    
+    con = ds.getConnection();
+    assertTrue(con.getAutoCommit());
+    con.close();
+  }
+  
   // TODO connections must not have old warnings when claimed
   // TODO connections must have cleared type-map when claimed
   // TODO connections must reset to the default result set holdability when claimed

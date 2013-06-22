@@ -1,4 +1,4 @@
-package stormpot.jdbc;
+package stormpot.jdbc.stubs;
 
 /**
  * A test DataSource where the getConnection methods always block.
@@ -12,7 +12,7 @@ import java.util.logging.Logger;
 
 import javax.sql.DataSource;
 
-public class BlockingDataSource implements DataSource {
+public class BlockingDataSourceStub implements DataSource {
   @Override
   public PrintWriter getLogWriter() throws SQLException {
     return null;
