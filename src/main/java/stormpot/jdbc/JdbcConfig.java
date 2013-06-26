@@ -6,16 +6,15 @@ import stormpot.Config;
 import stormpot.Expiration;
 
 public class JdbcConfig {
-  private Config<ConnectionProxy> config = new Config<ConnectionProxy>();
-
-  private DataSource dataSource;
+  Config<ConnectionProxy> config = new Config<ConnectionProxy>();
+  DataSource dataSource;
 
   public synchronized void setDataSource(DataSource dataSource) {
     this.dataSource = dataSource;
     config.setAllocator(new DataSourceAllocator(dataSource));
   }
 
-  public DataSource getDataSource() {
+  public synchronized DataSource getDataSource() {
     return dataSource;
   }
 

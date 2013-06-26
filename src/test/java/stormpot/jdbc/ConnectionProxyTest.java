@@ -5,10 +5,13 @@ import static org.mockito.Mockito.*;
 import static org.hamcrest.Matchers.*;
 
 import java.sql.ClientInfoStatus;
-import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -17,36 +20,38 @@ import org.junit.Before;
 import org.junit.Test;
 
 import stormpot.Slot;
-import stormpot.jdbc.stubs.ConnectionStub;
 
 public class ConnectionProxyTest {
   private static final AdaptorFactory adaptor =
       AdaptorMetaFactory.getAdaptorFactory();
   Slot slot;
   Jdbc41Connection con;
+  DatabaseMetaData metaData;
   
   @Before public void
-  setUp() {
+  setUp() throws SQLException {
     slot = mock(Slot.class);
     con = mock(Jdbc41ConnectionDelegate.class);
+    metaData = mock(DatabaseMetaData.class);
+    when(con.getMetaData()).thenReturn(metaData);
   }
 
-  private ConnectionProxy proxy() {
+  private ConnectionProxy proxy() throws SQLException {
     return new ConnectionProxy(slot, adaptor.adapt(con));
   }
   
   @Test(expected = IllegalArgumentException.class) public void
-  slotCannotBeNull() {
+  slotCannotBeNull() throws SQLException {
     new ConnectionProxy(null, adaptor.adapt(con));
   }
   
   @Test(expected = IllegalArgumentException.class) public void
-  connectionCannotBeNull() {
+  connectionCannotBeNull() throws SQLException {
     new ConnectionProxy(slot, null);
   }
   
   @Test public void
-  releaseMustDelegateToSlot() {
+  releaseMustDelegateToSlot() throws SQLException {
     ConnectionProxy proxy = proxy();
     proxy.release();
     verify(slot).release(proxy);
@@ -107,72 +112,6 @@ public class ConnectionProxyTest {
   }
   
   @Test public void
-  canUnwrapConnectionInterface() throws SQLException {
-    ConnectionProxy proxy = proxy();
-    assertTrue(proxy.isWrapperFor(Connection.class));
-  }
-  
-  @Test public void
-  mustUnwrapConnectionInterface() throws SQLException {
-    ConnectionProxy proxy = proxy();
-    assertThat(proxy.unwrap(Connection.class), sameInstance((Object) con));
-  }
-  
-  @Test public void
-  canUnwrapConnectionSpecificClass() throws SQLException {
-    con = new ConnectionStub();
-    ConnectionProxy proxy = proxy();
-    assertTrue(proxy.isWrapperFor(ConnectionStub.class));
-  }
-  
-  @Test public void
-  mustUnwrapConnectionSpecificClass() throws SQLException {
-    con = new ConnectionStub();
-    ConnectionProxy proxy = proxy();
-    assertThat(proxy.unwrap(ConnectionStub.class), sameInstance(con));
-  }
-  
-  @Test public void
-  canUnwrapIfDelegateCanUnwrap() throws SQLException {
-    when(con.isWrapperFor(String.class)).thenReturn(true);
-    ConnectionProxy proxy = proxy();
-    assertTrue(proxy.isWrapperFor(String.class));
-  }
-  
-  @Test public void
-  unwrapMustDelegateForUnknownTypes() throws SQLException {
-    String obj = "a string";
-    when(con.isWrapperFor(String.class)).thenReturn(true);
-    when(con.unwrap(String.class)).thenReturn(obj);
-    ConnectionProxy proxy = proxy();
-    assertThat(proxy.unwrap(String.class), sameInstance(obj));
-  }
-  
-  @Test public void
-  cannotUnwrapTotallyUnknownTypes() throws SQLException {
-    ConnectionProxy proxy = proxy();
-    assertFalse(proxy.isWrapperFor(String.class));
-  }
-  
-  @Test(expected = SQLException.class) public void
-  unwrapMustThrowSQLEceptionForTotallyUnkownTypes() throws SQLException {
-    ConnectionProxy proxy = proxy();
-    proxy.unwrap(String.class);
-  }
-  
-  @Test(expected = SQLException.class) public void
-  isWrapperForMustThrowOnNulls() throws SQLException {
-    ConnectionProxy proxy = proxy();
-    proxy.isWrapperFor(null);
-  }
-  
-  @Test(expected = SQLException.class) public void
-  unwrapMustThrowOnNulls() throws SQLException {
-    ConnectionProxy proxy = proxy();
-    proxy.unwrap(null);
-  }
-  
-  @Test public void
   setClientInfoExceptionMustContainPropertiesThatWereNotSet() throws SQLException {
     // Curiously, this behaviour is only specified for the bulk setClientInfo.
     Properties input = new Properties();
@@ -192,5 +131,97 @@ public class ConnectionProxyTest {
     assertThat(values.size(), is(2));
     assertThat(values.get(0), is(ClientInfoStatus.REASON_UNKNOWN));
     assertThat(values.get(1), is(ClientInfoStatus.REASON_UNKNOWN));
+  }
+  
+  @Test public void
+  reopenMustSetAutoCommitToTrue() throws SQLException {
+    proxy().reopen();
+    verify(con).setAutoCommit(true);
+  }
+  
+  @Test public void
+  reopenMustClearWarnings() throws SQLException {
+    proxy().reopen();
+    verify(con).clearWarnings();
+  }
+  
+  @Test public void
+  reopenMustResetHoldability() throws SQLException {
+    when(metaData.getResultSetHoldability()).thenReturn(13);
+    proxy().reopen();
+    verify(con).setHoldability(13);
+  }
+  
+  private static class Athlete {}
+  
+  @Test public void
+  reopenMustResetTheTypeMap() throws SQLException {
+    Map<String, Class<?>> baseTypeMap = new HashMap<String, Class<?>>();
+    baseTypeMap.put("Schema.ATHLETES", Athlete.class);
+    
+    Map<String, Class<?>> originalTypeMap = new HashMap<String, Class<?>>();
+    originalTypeMap.putAll(baseTypeMap);
+    
+    when(con.getTypeMap()).thenReturn(originalTypeMap);
+    
+    ConnectionProxy proxy = proxy();
+    proxy.getTypeMap().clear();
+    proxy.reopen();
+    
+    verify(con).setTypeMap(baseTypeMap);
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Test public void
+  reopenMustNotResetTypeMapIfTheyAreNotSupported() throws SQLException {
+    when(con.getTypeMap()).thenThrow(new SQLFeatureNotSupportedException());
+    
+    ConnectionProxy proxy = proxy();
+    try {
+      proxy.getTypeMap();
+    } catch (Exception _) {}
+    proxy.reopen();
+    
+    verify(con, never()).setTypeMap(anyMap());
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Test public void
+  mustSetTypeMapToNullIfThatIsTheDefault() throws SQLException {
+    when(con.getTypeMap()).thenReturn(null);
+    
+    ConnectionProxy proxy = proxy();
+    proxy.setTypeMap(Collections.EMPTY_MAP);
+    proxy.reopen();
+    
+    verify(con).setTypeMap(null);
+  }
+  
+  @Test public void
+  reopenMustResetClientInfo() throws SQLException {
+    Properties baseClientInfo = new Properties();
+    baseClientInfo.setProperty("a", "b");
+    
+    Properties originalClientInfo = new Properties();
+    originalClientInfo.putAll(baseClientInfo);
+    
+    when(con.getClientInfo()).thenReturn(originalClientInfo);
+    
+    ConnectionProxy proxy = proxy();
+    proxy.getClientInfo().clear();
+    proxy.reopen();
+    
+    verify(con).setClientInfo(baseClientInfo);
+  }
+  
+  @Test public void
+  reopenMustSetClientInfoToNullIfThatIsTheDefault() throws SQLException {
+    when(con.getClientInfo()).thenReturn(null);
+    
+    ConnectionProxy proxy = proxy();
+    proxy.setClientInfo(new Properties());
+    proxy.reopen();
+    
+    verify(con).setClientInfo(null);
   }
 }

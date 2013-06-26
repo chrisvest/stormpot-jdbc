@@ -13,6 +13,7 @@ import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLNonTransientException;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
@@ -28,17 +29,28 @@ import stormpot.Poolable;
 import stormpot.Slot;
 
 class ConnectionProxy implements Poolable, Jdbc41Connection {
+  private static final Map<String, Class<?>> TYPE_MAP_NOT_SUPPORTED =
+      new HashMap<String, Class<?>>();
+  private static final Map<String, Class<?>> TYPE_MAP_NULL =
+      new HashMap<String, Class<?>>();
+  private static final Properties CLIENT_INFO_NULL = new Properties();
   private static final String CLOSED_MESSAGE = "The connection is closed.";
 
   private final Slot slot;
   private final Jdbc41ConnectionDelegate con;
+  private final Map<String, Class<?>> baseTypeMap;
+  private final Properties baseClientInfo;
+  private final int defaultHoldability;
   
-  // This field is unprotected because a ConnectionProxy is, by virtue of the
+  // These fields are unprotected because a ConnectionProxy is, by virtue of the
   // pool, only ever accessed by a single thread at a time.
   // Connections are not promised to be thread-safe anyway.
   private boolean isClosed;
+  private boolean touchedTypeMap;
+  private boolean touchedClientInfo;
 
-  public ConnectionProxy(Slot slot, Jdbc41ConnectionDelegate con) {
+  public ConnectionProxy(Slot slot, Jdbc41ConnectionDelegate con)
+      throws SQLException {
     if (slot == null) {
       throw new IllegalArgumentException("The slot parameter cannot be null.");
     }
@@ -47,8 +59,43 @@ class ConnectionProxy implements Poolable, Jdbc41Connection {
     }
     this.slot = slot;
     this.con = con;
+    this.baseTypeMap = buildBaseTypeMap(con);
+    this.baseClientInfo = buildBaseClientInfo(con);
+    this.defaultHoldability = getDefaultHoldability(con);
+  }
+
+  private Map<String, Class<?>> buildBaseTypeMap(Jdbc41ConnectionDelegate con)
+      throws SQLException {
+    try {
+      Map<String, Class<?>> sourceTypeMap = con.getTypeMap();
+      if (sourceTypeMap == null) {
+        return TYPE_MAP_NULL;
+      }
+      Map<String, Class<?>> map = new HashMap<String, Class<?>>();
+      map.putAll(sourceTypeMap);
+      return map;
+    } catch (SQLFeatureNotSupportedException e) {
+      return TYPE_MAP_NOT_SUPPORTED;
+    }
+  }
+
+  private Properties buildBaseClientInfo(Jdbc41ConnectionDelegate con)
+      throws SQLException {
+    Properties sourceClientInfo = con.getClientInfo();
+    if (sourceClientInfo == null) {
+      return CLIENT_INFO_NULL;
+    }
+    Properties clientInfo = new Properties();
+    clientInfo.putAll(sourceClientInfo);
+    return clientInfo;
   }
   
+  private int getDefaultHoldability(Jdbc41ConnectionDelegate con)
+      throws SQLException {
+    DatabaseMetaData metaData = con.getMetaData();
+    return metaData.getResultSetHoldability();
+  }
+
   void closeDelegateConnection() throws SQLException {
     con.close();
   }
@@ -66,8 +113,32 @@ class ConnectionProxy implements Poolable, Jdbc41Connection {
     }
   }
   
-  void reopen() {
+  void reopen() throws SQLException {
     isClosed = false;
+    con.setAutoCommit(true);
+    con.clearWarnings();
+    con.setHoldability(defaultHoldability);
+    
+    if (touchedTypeMap && baseTypeMap != TYPE_MAP_NOT_SUPPORTED) {
+      if (baseTypeMap != TYPE_MAP_NULL) {
+        Map<String, Class<?>> typeMap = new HashMap<String, Class<?>>();
+        typeMap.putAll(baseTypeMap);
+        con.setTypeMap(typeMap);
+      } else {
+        con.setTypeMap(null);
+      }
+      touchedTypeMap = false;
+    }
+    
+    if (touchedClientInfo) {
+      if (baseClientInfo != CLIENT_INFO_NULL) {
+        Properties clientInfo = new Properties();
+        clientInfo.putAll(baseClientInfo);
+        con.setClientInfo(clientInfo);
+      } else {
+        con.setClientInfo(null);
+      }
+    }
   }
 
   @Override
@@ -337,12 +408,14 @@ class ConnectionProxy implements Poolable, Jdbc41Connection {
   @Override
   public Map<String, Class<?>> getTypeMap() throws SQLException {
     assertNotClosed();
+    touchedTypeMap = true;
     return con.getTypeMap();
   }
 
   @Override
   public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
     assertNotClosed();
+    touchedTypeMap = true;
     con.setTypeMap(map);
   }
 
@@ -391,6 +464,7 @@ class ConnectionProxy implements Poolable, Jdbc41Connection {
       failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
       throw newClientInfoException(failures);
     }
+    touchedClientInfo = true;
     con.setClientInfo(name, value);
   }
 
@@ -406,6 +480,7 @@ class ConnectionProxy implements Poolable, Jdbc41Connection {
       }
       throw newClientInfoException(failures);
     }
+    touchedClientInfo = true;
     con.setClientInfo(properties);
   }
 
@@ -424,6 +499,7 @@ class ConnectionProxy implements Poolable, Jdbc41Connection {
   @Override
   public Properties getClientInfo() throws SQLException {
     assertNotClosed();
+    touchedClientInfo = true;
     return con.getClientInfo();
   }
 

@@ -89,7 +89,7 @@ public class ConnectionStub implements PublicJdbc41Connection {
 
   @Override
   public DatabaseMetaData getMetaData() throws SQLException {
-    return null;
+    return new DatabaseMetaDataStub();
   }
 
   @Override

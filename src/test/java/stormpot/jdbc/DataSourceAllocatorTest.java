@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 
 import javax.sql.DataSource;
@@ -18,16 +19,19 @@ import stormpot.Slot;
 public class DataSourceAllocatorTest {
   DataSource delegate;
   Allocator<ConnectionProxy> allocator;
+  Connection con;
   
   @Before public void
-  setUp() {
+  setUp() throws SQLException {
     delegate = mock(DataSource.class);
     allocator = new DataSourceAllocator(delegate);
+    con = mock(Connection.class);
+    DatabaseMetaData metaData = mock(DatabaseMetaData.class);
+    when(con.getMetaData()).thenReturn(metaData);
   }
   
   @Test public void
   allocationMustBuildNewConnections() throws Exception {
-    Connection con = mock(Connection.class);
     Slot slot = mock(Slot.class);
     when(delegate.getConnection()).thenReturn(con);
     ConnectionProxy proxy = allocator.allocate(slot);
@@ -36,7 +40,6 @@ public class DataSourceAllocatorTest {
   
   @Test public void
   deallocationMustCloseConnections() throws Exception {
-    Connection con = mock(Connection.class);
     Slot slot = mock(Slot.class);
     when(delegate.getConnection()).thenReturn(con);
     ConnectionProxy proxy = allocator.allocate(slot);
@@ -53,7 +56,6 @@ public class DataSourceAllocatorTest {
   
   @Test(expected = SQLException.class) public void
   deallocationMustBubbleExceptionsOut() throws Exception {
-    Connection con = mock(Connection.class);
     Slot slot = mock(Slot.class);
     when(delegate.getConnection()).thenReturn(con);
     doThrow(new SQLException()).when(con).close();

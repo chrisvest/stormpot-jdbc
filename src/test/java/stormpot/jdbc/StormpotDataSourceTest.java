@@ -18,12 +18,15 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import stormpot.Config;
 import stormpot.LifecycledPool;
 import stormpot.LifecycledResizablePool;
 import stormpot.Pool;
 import stormpot.ResizablePool;
+import stormpot.Slot;
 import stormpot.jdbc.stubs.BlockingDataSourceStub;
 import stormpot.jdbc.stubs.ConnectionStub;
+import stormpot.jdbc.stubs.DataSourceStub;
 
 public class StormpotDataSourceTest {
   private static final PrintWriter LOG_WRITER =
@@ -282,7 +285,7 @@ public class StormpotDataSourceTest {
   // javax.sql.DataSource:
   @Test public void
   getConnectionMustClaimFromPool() throws SQLException {
-    Connection con = mock(Connection.class);
+    Connection con = new ConnectionStub();
     Fixture fixture = fixture();
     when(fixture.delegate().getConnection()).thenReturn(con);
     DataSource ds = fixture.pool();
@@ -360,25 +363,23 @@ public class StormpotDataSourceTest {
   }
   
   @Test public void
-  connectionsMustHaveAutoCommitModeEnabledWhenClaimed() throws SQLException {
+  mustReopenClaimedConnections() throws Exception {
+    ConnectionProxy proxy = mock(ConnectionProxy.class);
+    final DataSourceAllocator alloc = mock(DataSourceAllocator.class);
+    when(alloc.allocate(isA(Slot.class))).thenReturn(proxy);
+    
     Fixture fixture = fixture();
-    when(fixture.delegate().getConnection()).thenAnswer(newConnectionStub());
-    fixture.config.setPoolSize(1);
+    fixture.config = new JdbcConfig() {
+      Config<ConnectionProxy> buildPoolConfig() {
+        config.setAllocator(alloc);
+        return config;
+      }
+    };
+    fixture.config.setDataSource(new DataSourceStub()); // makes it validate
+    
     DataSource ds = fixture.pool();
-    Connection con;
+    ds.getConnection().close();
     
-    con = ds.getConnection();
-    assertTrue(con.getAutoCommit());
-    con.setAutoCommit(false);
-    con.close();
-    
-    con = ds.getConnection();
-    assertTrue(con.getAutoCommit());
-    con.close();
+    verify(proxy).reopen();
   }
-  
-  // TODO connections must not have old warnings when claimed
-  // TODO connections must have cleared type-map when claimed
-  // TODO connections must reset to the default result set holdability when claimed
-  // TODO connections must reset client info properties when claimed
 }

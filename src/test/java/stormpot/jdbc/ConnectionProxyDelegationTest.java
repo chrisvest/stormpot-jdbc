@@ -43,9 +43,11 @@ public class ConnectionProxyDelegationTest {
   ConnectionProxy proxy;
   
   @Before public void
-  setUp() {
+  setUp() throws SQLException {
     slot = mock(Slot.class);
     con = mock(Jdbc41ConnectionDelegate.class);
+    DatabaseMetaData metaData = mock(DatabaseMetaData.class);
+    when(con.getMetaData()).thenReturn(metaData);
     proxy = new ConnectionProxy(slot, con);
   }
   

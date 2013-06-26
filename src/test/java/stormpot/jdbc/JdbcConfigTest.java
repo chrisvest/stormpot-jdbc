@@ -4,6 +4,8 @@ import static org.junit.Assert.*;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
 
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
@@ -29,6 +31,11 @@ public class JdbcConfigTest {
   @Test public void
   mustConfigureDataSource() throws Exception {
     DataSource ds = mock(DataSource.class);
+    Connection con = mock(Connection.class);
+    DatabaseMetaData metaData = mock(DatabaseMetaData.class);
+    when(con.getMetaData()).thenReturn(metaData);
+    when(ds.getConnection()).thenReturn(con);
+    
     JdbcConfig jdbcConfig = new JdbcConfig();
     jdbcConfig.setDataSource(ds);
     Config<ConnectionProxy> config = jdbcConfig.buildPoolConfig();
