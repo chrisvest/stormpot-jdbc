@@ -1,24 +1,15 @@
 package stormpot.jdbc;
 
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
-import static org.hamcrest.Matchers.*;
 
-import java.sql.ClientInfoStatus;
-import java.sql.DatabaseMetaData;
-import java.sql.SQLClientInfoException;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.sql.*;
+import java.util.*;
 
 import org.junit.Before;
 import org.junit.Test;
-
 import stormpot.Slot;
 
 public class ConnectionProxyTest {
@@ -224,4 +215,7 @@ public class ConnectionProxyTest {
     
     verify(con).setClientInfo(null);
   }
+
+  // TODO must roll back uncommitted transaction on close
+  // TODO must not roll back on close when autocommit is on
 }

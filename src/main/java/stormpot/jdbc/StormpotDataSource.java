@@ -1,5 +1,6 @@
 package stormpot.jdbc;
 
+import javax.sql.DataSource;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -7,8 +8,6 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLTimeoutException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
-
-import javax.sql.DataSource;
 
 import stormpot.Config;
 import stormpot.Pool;
@@ -126,8 +125,6 @@ public class StormpotDataSource implements DataSource {
         throw new SQLTimeoutException(reason);
       }
       con.reopen();
-      con.clearWarnings();
-      con.setAutoCommit(true);
       return con;
     } catch (PoolException e) {
       throw new SQLException("Failed to claim connection from pool.", e);
